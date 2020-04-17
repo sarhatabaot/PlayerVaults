@@ -54,10 +54,13 @@ public class SignListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
-        if (!PlayerVaults.getInstance().getConfig().getBoolean("signs-enabled")) {
+        if (!PlayerVaults.getInstance().getConf().isSigns()) {
             return;
         }
         Player player = event.getPlayer();
+        if (player.isSleeping() || player.isDead() || !player.isOnline()) {
+            return;
+        }
         Block block = event.getClickedBlock();
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             if (PlayerVaults.getInstance().getInVault().containsKey(player.getUniqueId().toString())) {
@@ -73,7 +76,7 @@ public class SignListener implements Listener {
             String owner = self ? null : PlayerVaults.getInstance().getSetSign().get(player.getName()).getOwner();
             PlayerVaults.getInstance().getSetSign().remove(player.getName());
             event.setCancelled(true);
-            if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            if (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.LEFT_CLICK_BLOCK) {
                 if (block != null && plugin.isSign(block.getType())) {
                     Sign s = (Sign) block.getState();
                     Location l = s.getLocation();
@@ -146,7 +149,7 @@ public class SignListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockPhysics(BlockPhysicsEvent event) {
-        if (!PlayerVaults.getInstance().getConfig().getBoolean("signs-enabled")) {
+        if (!PlayerVaults.getInstance().getConf().isSigns()) {
             return;
         }
         blockChangeCheck(event.getBlock().getLocation());
@@ -154,7 +157,7 @@ public class SignListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntityChangeBlock(EntityChangeBlockEvent event) {
-        if (!PlayerVaults.getInstance().getConfig().getBoolean("signs-enabled")) {
+        if (!PlayerVaults.getInstance().getConf().isSigns()) {
             return;
         }
         blockChangeCheck(event.getBlock().getLocation());
@@ -162,7 +165,7 @@ public class SignListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
-        if (!PlayerVaults.getInstance().getConfig().getBoolean("signs-enabled")) {
+        if (!PlayerVaults.getInstance().getConf().isSigns()) {
             return;
         }
         blockChangeCheck(event.getBlock().getLocation());

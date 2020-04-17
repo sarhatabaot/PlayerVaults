@@ -1,5 +1,5 @@
 name: PlayerVaults
-authors: [drtshock, kashike]
+authors: [drtshock, kashike, CmdrKittens]
 website: ${project.url}
 
 version: ${project.version}
@@ -31,3 +31,6 @@ permissions:
   playervaults.bypassblockeditems:
     description: Grants access to bypass blocked vault items.
     default: op
+  playervaults.commands.use:
+    description: Use the command
+    default: true

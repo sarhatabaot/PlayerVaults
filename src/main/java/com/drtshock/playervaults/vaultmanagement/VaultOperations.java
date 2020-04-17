@@ -77,7 +77,7 @@ public class VaultOperations {
         if (sender.hasPermission("playervaults.amount." + number)) {
             return true;
         }
-        for (int x = number; x <= 99; x++) {
+        for (int x = number; x <= PlayerVaults.getInstance().getMaxVaultAmountPermTest(); x++) {
             if (sender.hasPermission("playervaults.amount." + x)) {
                 return true;
             }
@@ -89,7 +89,7 @@ public class VaultOperations {
      * Get the max size vault a player is allowed to have.
      *
      * @param name that is having his permissions checked.
-     * @return max size as integer. If no max size is set then it will default to 54.
+     * @return max size as integer. If no max size is set then it will default to the configured default.
      */
     public static int getMaxVaultSize(String name) {
         try {
@@ -99,25 +99,25 @@ public class VaultOperations {
             // Not a UUID
         }
 
-        return 54;
+        return PlayerVaults.getInstance().getDefaultVaultSize();
     }
 
     /**
      * Get the max size vault a player is allowed to have.
      *
      * @param player that is having his permissions checked.
-     * @return max size as integer. If no max size is set then it will default to 54.
+     * @return max size as integer. If no max size is set then it will default to the configured default.
      */
     public static int getMaxVaultSize(OfflinePlayer player) {
         if (player == null || !player.isOnline()) {
-            return 54;
+            return PlayerVaults.getInstance().getDefaultVaultSize();
         }
         for (int i = 6; i != 0; i--) {
             if (player.getPlayer().hasPermission("playervaults.size." + i)) {
                 return i * 9;
             }
         }
-        return 54;
+        return PlayerVaults.getInstance().getDefaultVaultSize();
     }
 
     /**
@@ -129,6 +129,9 @@ public class VaultOperations {
      */
     public static boolean openOwnVault(Player player, String arg) {
         if (isLocked()) {
+            return false;
+        }
+        if (player.isSleeping() || player.isDead() || !player.isOnline()) {
             return false;
         }
         int number;
@@ -199,6 +202,10 @@ public class VaultOperations {
      */
     public static boolean openOtherVault(Player player, String vaultOwner, String arg) {
         if (isLocked()) {
+            return false;
+        }
+
+        if (player.isSleeping() || player.isDead() || !player.isOnline()) {
             return false;
         }
 
@@ -309,7 +316,7 @@ public class VaultOperations {
     }
 
     /**
-     * Delete all of a player's vaults (Currently goes to vault #100)
+     * Delete all of a player's vaults
      *
      * @param sender The sender executing the deletion.
      * @param holder The user to whom the deleted vault belongs.
