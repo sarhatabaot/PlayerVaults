@@ -17,6 +17,11 @@ import org.bukkit.inventory.ItemStack;
 import java.io.File;
 import java.util.UUID;
 
+/**
+ * Converter for CosmicVaults 2.X
+ *
+ * @author sarhatabaot
+ */
 public class CosmicVaultsConverter implements Converter {
 	private final PlayerVaults plugin = PlayerVaults.getInstance();
 	private final VaultManager vaults = VaultManager.getInstance();
