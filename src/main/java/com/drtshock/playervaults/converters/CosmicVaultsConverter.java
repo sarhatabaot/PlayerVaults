@@ -58,7 +58,7 @@ public class CosmicVaultsConverter implements Converter {
 					if (allVaultsSection.getKeys(false).isEmpty()) return false; //no vaults
 
 					int converted = convertVaults(allVaultsSection,player.getUniqueId());
-					if (System.currentTimeMillis() - lastUpdate >= 1500) {
+					if (System.currentTimeMillis() - lastUpdate >= 1500) { //why?
 						plugin.getLogger().info(converted + " vaults have been converted in " + playerFile.getAbsolutePath());
 						lastUpdate = System.currentTimeMillis();
 					}
