@@ -363,6 +363,7 @@ public class VaultManager {
         }
 
         final boolean backups = PlayerVaults.getInstance().isBackupsEnabled();
+
         final File backupsFolder = PlayerVaults.getInstance().getBackupsFolder();
         final File file = new File(directory, holder + ".yml");
         if (file.exists() && backups) {
