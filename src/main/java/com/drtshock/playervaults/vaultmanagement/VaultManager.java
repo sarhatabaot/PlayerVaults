@@ -32,6 +32,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystemException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -341,6 +342,10 @@ public class VaultManager {
             if (createIfNotFound) {
                 try {
                     file.createNewFile();
+                } catch(FileSystemException e) {
+                    PlayerVaults.getInstance().getLogger().severe(e.getMessage());
+                    PlayerVaults.getInstance().getLogger().severe("Something is seriously wrong, disabling plugin for safety");
+                    Bukkit.getServer().getPluginManager().disablePlugin(PlayerVaults.getInstance());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -358,6 +363,7 @@ public class VaultManager {
         }
 
         final boolean backups = PlayerVaults.getInstance().isBackupsEnabled();
+
         final File backupsFolder = PlayerVaults.getInstance().getBackupsFolder();
         final File file = new File(directory, holder + ".yml");
         if (file.exists() && backups) {

@@ -21,12 +21,13 @@ import com.drtshock.playervaults.PlayerVaults;
 import com.drtshock.playervaults.config.annotation.Comment;
 import com.drtshock.playervaults.config.annotation.ConfigName;
 import com.drtshock.playervaults.config.annotation.WipeOnReload;
-import com.drtshock.playervaults.lib.com.typesafe.config.Config;
-import com.drtshock.playervaults.lib.com.typesafe.config.ConfigFactory;
-import com.drtshock.playervaults.lib.com.typesafe.config.ConfigRenderOptions;
-import com.drtshock.playervaults.lib.com.typesafe.config.ConfigValue;
-import com.drtshock.playervaults.lib.com.typesafe.config.ConfigValueFactory;
-import com.drtshock.playervaults.lib.com.typesafe.config.ConfigValueType;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigRenderOptions;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueFactory;
+import com.typesafe.config.ConfigValueType;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 

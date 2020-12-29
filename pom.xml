@@ -4,7 +4,7 @@
 
     <groupId>com.drtshock</groupId>
     <artifactId>PlayerVaultsX</artifactId>
-    <version>4.1.15</version>
+    <version>4.1.8-TI</version>
     <name>PlayerVaultsX</name>
     <url>https://www.spigotmc.org/resources/51204/</url>
 
@@ -15,7 +15,7 @@
 
     <build>
         <defaultGoal>clean install</defaultGoal>
-        <finalName>PlayerVaultsX</finalName>
+        <finalName>PlayerVaultsX-${project.version}-${build.number}</finalName>
         <resources>
             <resource>
                 <filtering>true</filtering>
@@ -36,6 +36,27 @@
                     <target>1.8</target>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.2</version>
+                <configuration>
+                    <relocations>
+                        <relocation>
+                            <pattern>com.typesafe.config</pattern>
+                            <shadedPattern>com.drtshock.playervaults</shadedPattern>
+                        </relocation>
+                    </relocations>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -45,16 +66,16 @@
             <url>http://nexus.hc.to/content/repositories/pub_releases/</url>
         </repository>
         <repository>
-            <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
+            <id>papermc</id>
+            <url>https://papermc.io/repo/repository/maven-public/</url>
         </repository>
     </repositories>
 
     <dependencies>
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.13.1-R0.1-SNAPSHOT</version>
+            <groupId>com.destroystokyo.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.16.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -68,6 +89,18 @@
             <artifactId>checker-qual</artifactId>
             <version>3.3.0</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+            <version>1.4.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.lingala.zip4j</groupId>
+            <artifactId>zip4j</artifactId>
+            <version>2.6.3</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

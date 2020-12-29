@@ -93,9 +93,22 @@ public class Config {
             @Comment("Backups\n" +
                     " Enabling this will create backups of vaults automagically.")
             private boolean backups = true;
+            @Comment("Zip Backups \n"+
+                     " Enabling this will zip all backups by date")
+            private boolean zipBackups = true;
+            @Comment("Interval to zip the backups, in ticks.")
+            private int interval = 84000;
 
             public boolean isBackups() {
                 return this.backups;
+            }
+
+            public boolean isZipBackups() {
+                return zipBackups;
+            }
+
+            public int getInterval() {
+                return interval;
             }
         }
 

@@ -31,6 +31,7 @@ import com.drtshock.playervaults.listeners.VaultPreloadListener;
 import com.drtshock.playervaults.tasks.Base64Conversion;
 import com.drtshock.playervaults.tasks.Cleanup;
 import com.drtshock.playervaults.tasks.UUIDConversion;
+import com.drtshock.playervaults.tasks.ZipBackups;
 import com.drtshock.playervaults.translations.Lang;
 import com.drtshock.playervaults.translations.Language;
 import com.drtshock.playervaults.vaultmanagement.UUIDVaultManager;
@@ -90,6 +91,9 @@ public class PlayerVaults extends JavaPlugin {
     private int maxVaultAmountPermTest;
     private Metrics metrics;
     private Config config = new Config();
+
+
+    private ZipBackups zipBackups;
 
     public static PlayerVaults getInstance() {
         return instance;
@@ -164,6 +168,8 @@ public class PlayerVaults extends JavaPlugin {
                 }
             }
         }.runTaskTimer(this, 20, 20);
+
+        loadTask();
 
         this.metrics = new Metrics(this, 6905);
         Plugin vault = getServer().getPluginManager().getPlugin("Vault");
@@ -309,9 +315,19 @@ public class PlayerVaults extends JavaPlugin {
             loadConfig(); // To update blocked materials.
             reloadSigns();
             loadLang();
+            loadTask();
             sender.sendMessage(ChatColor.GREEN + "Reloaded PlayerVault's configuration and lang files.");
         }
         return true;
+    }
+
+    private void loadTask(){
+        if(zipBackups == null){
+            zipBackups = new ZipBackups();
+        } else if(!zipBackups.isCancelled()) {
+            zipBackups.cancel();
+        }
+        zipBackups.runTaskTimer(this,20,getConf().getStorage().getFlatFile().getInterval());
     }
 
     private boolean setupEconomy() {
@@ -462,8 +478,7 @@ public class PlayerVaults extends JavaPlugin {
             return;
         }
 
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(definedFile);
-        Lang.setFile(config);
+        Lang.setFile(YamlConfiguration.loadConfiguration(definedFile));
         getLogger().info("Loaded lang for " + definedLanguage);
     }
 
