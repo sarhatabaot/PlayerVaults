@@ -21,6 +21,8 @@ package com.drtshock.playervaults.tasks;
 import com.drtshock.playervaults.PlayerVaults;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 
 public class Cleanup implements Runnable {
 
@@ -45,7 +47,11 @@ public class Cleanup implements Runnable {
             }
             if (time - file.lastModified() > diff) {
                 PlayerVaults.getInstance().getLogger().info("Deleting vault file (cleanup): " + file.getName());
-                file.delete();
+                try {
+                    Files.delete(file.toPath());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

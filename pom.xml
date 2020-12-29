@@ -4,7 +4,7 @@
 
     <groupId>com.drtshock</groupId>
     <artifactId>PlayerVaultsX</artifactId>
-    <version>4.1.8-CVConverter</version>
+    <version>4.1.8-CVConverter-TI</version>
     <name>PlayerVaultsX</name>
     <url>https://www.spigotmc.org/resources/51204/</url>
 
@@ -15,7 +15,7 @@
 
     <build>
         <defaultGoal>clean install</defaultGoal>
-        <finalName>PlayerVaultsX</finalName>
+        <finalName>PlayerVaultsX-${project.version}-${build.number}</finalName>
         <resources>
             <resource>
                 <filtering>true</filtering>
