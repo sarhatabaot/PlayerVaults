@@ -69,6 +69,10 @@
             <id>papermc</id>
             <url>https://papermc.io/repo/repository/maven-public/</url>
         </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -101,6 +105,12 @@
             <artifactId>zip4j</artifactId>
             <version>2.6.3</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.TechFortress</groupId>
+            <artifactId>GriefPrevention</artifactId>
+            <version>16.7.1</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>
