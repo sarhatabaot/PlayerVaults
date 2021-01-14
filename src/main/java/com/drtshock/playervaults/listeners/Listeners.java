@@ -169,29 +169,33 @@ public class Listeners implements Listener {
 		Player player = (Player) event.getWhoClicked();
 
 		Inventory clickedInventory = event.getInventory();
-		if (clickedInventory != null) {
-			VaultViewInfo info = PlayerVaults.getInstance().getInVault().get(player.getUniqueId().toString());
-			if (info != null) {
-				int num = info.getNumber();
-				String inventoryTitle = event.getView().getTitle();
-				String title = Lang.VAULT_TITLE.toString().replace("%number", String.valueOf(num)).replace("%p", info.getVaultName());
-				if ((inventoryTitle != null && inventoryTitle.equalsIgnoreCase(title)) && event.getNewItems() != null) {
-					for (ItemStack item : event.getNewItems().values()) {
-						try {
-							item.toString();
-						} catch (Exception e) {
-							player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_BAD_ITEM);
-							event.setCancelled(true);
-							continue;
-						}
-						if (!player.hasPermission("playervaults.bypassblockeditems") && PlayerVaults.getInstance().isBlockedMaterial(item.getType())) {
-							event.setCancelled(true);
-							player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_ITEM.toString().replace("%m", item.getType().name()));
-							return;
-						}
-					}
+		if (clickedInventory == null)
+			return;
+
+		VaultViewInfo info = PlayerVaults.getInstance().getInVault().get(player.getUniqueId().toString());
+		if (info == null)
+			return;
+
+		int num = info.getNumber();
+		String inventoryTitle = event.getView().getTitle();
+		String title = Lang.VAULT_TITLE.toString().replace("%number", String.valueOf(num)).replace("%p", info.getVaultName());
+		if ((inventoryTitle != null && inventoryTitle.equalsIgnoreCase(title)) && event.getNewItems() != null) {
+			for (ItemStack item : event.getNewItems().values()) {
+				try {
+					item.toString();
+				} catch (Exception e) {
+					player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_BAD_ITEM);
+					event.setCancelled(true);
+					continue;
+				}
+				if (!player.hasPermission("playervaults.bypassblockeditems") && PlayerVaults.getInstance().isBlockedMaterial(item.getType())) {
+					event.setCancelled(true);
+					player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_ITEM.toString().replace("%m", item.getType().name()));
+					return;
 				}
 			}
 		}
+
+
 	}
 }
