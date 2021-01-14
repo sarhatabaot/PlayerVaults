@@ -18,6 +18,10 @@
 
 package com.drtshock.playervaults.commands;
 
+import co.aikar.commands.BaseCommand;
+import co.aikar.commands.annotation.CommandAlias;
+import co.aikar.commands.annotation.CommandPermission;
+import co.aikar.commands.annotation.Default;
 import com.drtshock.playervaults.PlayerVaults;
 import com.drtshock.playervaults.translations.Lang;
 import me.ryanhamshire.GriefPrevention.Claim;
@@ -26,69 +30,42 @@ import me.ryanhamshire.GriefPrevention.GriefPrevention;
 import me.ryanhamshire.GriefPrevention.PlayerData;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-public class SignCommand implements CommandExecutor {
 
-	@Override
-	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-		if (!sender.hasPermission("playervaults.signs.set")) {
-			sender.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS);
-			return true;
-		}
+public class SignCommand extends BaseCommand {
 
+	@Default
+	@CommandAlias("pvsign")
+	@CommandPermission("playervaults.signs.set")
+	public void onSetSign(final Player player, final int number) {
+		onSetOtherSign(player,player,number);
+	}
+
+	@CommandAlias("pvsignother")
+	@CommandPermission("playervaults.signs.set.other")
+	public void onSetOtherSign(final Player player, final OfflinePlayer target, final int number) {
 		if (!PlayerVaults.getInstance().getConf().isSigns()) {
-			sender.sendMessage(Lang.TITLE.toString() + Lang.SIGNS_DISABLED.toString());
-			return true;
-		}
-
-		if (!(sender instanceof Player)) {
-			sender.sendMessage(Lang.TITLE.toString() + Lang.PLAYER_ONLY);
-			return true;
+			player.sendMessage(Lang.TITLE.toString() + Lang.SIGNS_DISABLED.toString());
+			return;
 		}
 
 		if(Bukkit.getPluginManager().getPlugin("GriefPrevention") != null) {
-			Player player = (Player) sender;
 			DataStore dataStore = GriefPrevention.instance.dataStore;
 			PlayerData playerData = dataStore.getPlayerData(player.getUniqueId());
 			Claim claim = dataStore.getClaimAt(player.getLocation(), false, playerData.lastClaim);
 			if(claim == null || claim.allowBuild(player, Material.AIR ) == null) {
-				sender.sendMessage(Lang.TITLE.toString() + "You do not have permission to build in this claim");
-				return true;
+				player.sendMessage(Lang.TITLE.toString() + "You do not have permission to build in this claim");
+				return;
 			}
 		}
 
-		if (args.length == 1) {
-			int i;
-			try {
-				i = Integer.parseInt(args[0]);
-			} catch (NumberFormatException nfe) {
-				sender.sendMessage(Lang.TITLE.toString() + Lang.MUST_BE_NUMBER);
-				sender.sendMessage(Lang.TITLE.toString() + "Usage: /" + label + " [owner] <#>");
-				return true;
-			}
-			PlayerVaults.getInstance().getSetSign().put(sender.getName(), new SignSetInfo(i));
-			sender.sendMessage(Lang.TITLE.toString() + Lang.CLICK_A_SIGN);
-		} else if (args.length >= 2) {
-			int i;
-			try {
-				i = Integer.parseInt(args[1]);
-			} catch (NumberFormatException nfe) {
-				sender.sendMessage(Lang.TITLE.toString() + Lang.MUST_BE_NUMBER);
-				sender.sendMessage(Lang.TITLE.toString() + "Usage: /" + label + " [owner] <#>");
-				return true;
-			}
-			PlayerVaults.getInstance().getSetSign().put(sender.getName(), new SignSetInfo(args[0].toLowerCase(), i));
-			sender.sendMessage(Lang.TITLE.toString() + Lang.CLICK_A_SIGN);
-		} else {
-			sender.sendMessage(Lang.TITLE.toString() + Lang.INVALID_ARGS);
-			return false;
-		}
+		PlayerVaults.getInstance().getSetSign().put(player.getName(), new SignSetInfo(target.getName().toLowerCase(), number));
+		player.sendMessage(Lang.TITLE.toString() + Lang.CLICK_A_SIGN);
+	}
 
-
-		return true;
-}
 }

@@ -18,66 +18,83 @@
 
 package com.drtshock.playervaults.commands;
 
+import co.aikar.commands.BaseCommand;
+import co.aikar.commands.annotation.CommandAlias;
+import co.aikar.commands.annotation.CommandPermission;
+import co.aikar.commands.annotation.Default;
+import co.aikar.commands.annotation.Description;
 import com.drtshock.playervaults.PlayerVaults;
 import com.drtshock.playervaults.converters.BackpackConverter;
 import com.drtshock.playervaults.converters.Converter;
 import com.drtshock.playervaults.converters.CosmicVaultsConverter;
 import com.drtshock.playervaults.translations.Lang;
 import com.drtshock.playervaults.vaultmanagement.VaultOperations;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ConvertCommand implements CommandExecutor {
+@CommandAlias("pvconvert|vaultconvert")
+@CommandPermission("playervaults.convert")
+@Description("Convert from a compatible plugin.")
+public class ConvertCommand extends BaseCommand {
 
-    private final List<Converter> converters = new ArrayList<>();
+	private final List<Converter> converters = new ArrayList<>();
 
-    public ConvertCommand() {
-        converters.add(new BackpackConverter());
-        converters.add(new CosmicVaultsConverter());
-    }
+	public ConvertCommand() {
+		converters.add(new BackpackConverter());
+		converters.add(new CosmicVaultsConverter());
+	}
 
-    @Override
-    public boolean onCommand(final CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("playervaults.convert")) {
-            sender.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS);
-        } else {
-            if (args.length == 0) {
-                sender.sendMessage(Lang.TITLE + "/" + label + " <all | plugin name>");
-            } else {
-                String name = args[0];
-                final List<Converter> applicableConverters = new ArrayList<>();
-                if (name.equalsIgnoreCase("all")) {
-                    applicableConverters.addAll(converters);
-                } else {
-                    for (Converter converter : converters) {
-                        if (converter.getName().equalsIgnoreCase(name)) {
-                            applicableConverters.add(converter);
-                        }
-                    }
-                }
-                if (applicableConverters.size() <= 0) {
-                    sender.sendMessage(Lang.TITLE.toString() + Lang.CONVERT_PLUGIN_NOT_FOUND);
-                } else {
-                    // Fork into background
-                    sender.sendMessage(Lang.TITLE + Lang.CONVERT_BACKGROUND.toString());
-                    PlayerVaults.getInstance().getServer().getScheduler().runTaskLaterAsynchronously(PlayerVaults.getInstance(), () -> {
-                        int converted = 0;
-                        VaultOperations.setLocked(true);
-                        for (Converter converter : applicableConverters) {
-                            if (converter.canConvert()) {
-                                converted += converter.run(sender);
-                            }
-                        }
-                        VaultOperations.setLocked(false);
-                        sender.sendMessage(Lang.TITLE + Lang.CONVERT_COMPLETE.toString().replace("%converted", converted + ""));
-                    }, 5);
-                }
-            }
-        }
-        return true;
-    }
+	private List<Converter> getApplicableConverters(String name) {
+		final List<Converter> applicableConverters = new ArrayList<>();
+		if (name.equalsIgnoreCase("all")) {
+			applicableConverters.addAll(converters);
+		} else {
+			for (Converter converter : converters) {
+				if (converter.getName().equalsIgnoreCase(name)) {
+					applicableConverters.add(converter);
+				}
+			}
+		}
+		return applicableConverters;
+	}
+
+	@Default
+	public void onConvert(final CommandSender sender, final String name /*Add completion*/) {
+		final List<Converter> applicableConverters = getApplicableConverters(name);
+		if (applicableConverters.isEmpty()) {
+			sender.sendMessage(Lang.TITLE.toString() + Lang.CONVERT_PLUGIN_NOT_FOUND);
+			return;
+		}
+
+
+		// Fork into background
+		sender.sendMessage(Lang.TITLE + Lang.CONVERT_BACKGROUND.toString());
+		new ConvertRunnable(applicableConverters, sender).runTaskLaterAsynchronously(PlayerVaults.getInstance(),5);
+	}
+
+	public static class ConvertRunnable extends BukkitRunnable {
+		private final List<Converter> applicableConverters;
+		private final CommandSender sender;
+
+		public ConvertRunnable(final List<Converter> applicableConverters, final CommandSender sender) {
+			this.applicableConverters = applicableConverters;
+			this.sender = sender;
+		}
+
+		@Override
+		public void run() {
+			int converted = 0;
+			VaultOperations.setLocked(true);
+			for (Converter converter : applicableConverters) {
+				if (converter.canConvert()) {
+					converted += converter.run(sender);
+				}
+			}
+			VaultOperations.setLocked(false);
+			sender.sendMessage(Lang.TITLE + Lang.CONVERT_COMPLETE.toString().replace("%converted", converted + ""));
+		}
+	}
 }

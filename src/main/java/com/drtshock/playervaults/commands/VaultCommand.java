@@ -18,6 +18,12 @@
 
 package com.drtshock.playervaults.commands;
 
+import co.aikar.commands.BaseCommand;
+import co.aikar.commands.annotation.CommandAlias;
+import co.aikar.commands.annotation.CommandPermission;
+import co.aikar.commands.annotation.Default;
+import co.aikar.commands.annotation.Optional;
+import co.aikar.commands.annotation.Subcommand;
 import com.drtshock.playervaults.PlayerVaults;
 import com.drtshock.playervaults.translations.Lang;
 import com.drtshock.playervaults.vaultmanagement.VaultManager;
@@ -31,79 +37,52 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.checkerframework.checker.units.qual.C;
 
-public class VaultCommand implements CommandExecutor {
+@CommandAlias("pv|vault|chest|playervaults|vc")
+public class VaultCommand extends BaseCommand {
+	private final VaultManager vaultManager = VaultManager.getInstance();
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (VaultOperations.isLocked()) {
-            sender.sendMessage(Lang.TITLE + Lang.LOCKED.toString());
-            return true;
-        }
+	@Subcommand("other")
+	@CommandPermission("playervaults.admin")
+	public void onOpenOtherVault(final Player player, final OfflinePlayer target, @Optional final int number) {
+		if (VaultOperations.isLocked()) {
+			player.sendMessage(Lang.TITLE + Lang.LOCKED.toString());
+			return;
+		}
 
-        if (sender instanceof Player) {
-            Player player = (Player) sender;
-            if (PlayerVaults.getInstance().getInVault().containsKey(player.getUniqueId().toString())) {
-                // don't let them open another vault.
-                return true;
-            }
+		if (PlayerVaults.getInstance().getInVault().containsKey(player.getUniqueId().toString())) {
+			// don't let them open another vault.
+			return;
+		}
 
-            switch (args.length) {
-                case 1:
-                    if (VaultOperations.openOwnVault(player, args[0], true)) {
-                        PlayerVaults.getInstance().getInVault().put(player.getUniqueId().toString(), new VaultViewInfo(player.getUniqueId().toString(), Integer.parseInt(args[0])));
-                    } else if (sender.hasPermission("playervaults.admin")) {
-                        OfflinePlayer searchPlayer = Bukkit.getOfflinePlayer(args[0]);
-                        String target = args[0];
-                        if (searchPlayer != null && searchPlayer.hasPlayedBefore()) {
-                            target = searchPlayer.getUniqueId().toString();
-                        }
+		if (number == 0) {
+			player.sendMessage(getVaultList(target.getName()));
+			return;
+		}
 
-                        YamlConfiguration file = VaultManager.getInstance().getPlayerVaultFile(target, false);
-                        if (file == null) {
-                            sender.sendMessage(Lang.TITLE.toString() + Lang.VAULT_DOES_NOT_EXIST.toString());
-                        } else {
-                            StringBuilder sb = new StringBuilder();
-                            for (String key : file.getKeys(false)) {
-                                sb.append(key.replace("vault", "")).append(" ");
-                            }
+		if (VaultOperations.openOtherVault(player, target.getName(), number)) {
+			PlayerVaults.getInstance().getInVault().put(player.getUniqueId().toString(), new VaultViewInfo(target.getName(), number));
+		}
 
-                            sender.sendMessage(Lang.TITLE.toString() + Lang.EXISTING_VAULTS.toString().replaceAll("%p", args[0]).replaceAll("%v", sb.toString().trim()));
-                        }
-                    }
-                    break;
-                case 2:
-                    if (!player.hasPermission("playervaults.admin")) {
-                        player.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS.toString());
-                        break;
-                    }
+	}
 
-                    int number;
-                    try {
-                        number = Integer.parseInt(args[1]);
-                    } catch (NumberFormatException e) {
-                        player.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
-                        return true;
-                    }
+	// Return the vaults a player has, or a message if he doesn't any at all.
+	private String getVaultList(final String target) {
+		YamlConfiguration file = vaultManager.getPlayerVaultFile(target, false);
+		if (file == null) {
+			return Lang.TITLE.toString() + Lang.VAULT_DOES_NOT_EXIST.toString();
+		}
+		StringBuilder sb = new StringBuilder();
+		for (String key : file.getKeys(false)) {
+			sb.append(key.replace("vault", "")).append(" ");
+		}
 
-                    String target = args[0];
-                    OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[0]);
-                    if (offlinePlayer != null && offlinePlayer.hasPlayedBefore()) {
-                        target = offlinePlayer.getUniqueId().toString();
-                    }
-                    if (VaultOperations.openOtherVault(player, target, args[1])) {
-                        PlayerVaults.getInstance().getInVault().put(player.getUniqueId().toString(), new VaultViewInfo(target, number));
-                    } else {
-                        sender.sendMessage(Lang.TITLE.toString() + Lang.NO_OWNER_FOUND.toString().replaceAll("%p", args[0]));
-                    }
-                    break;
-                default:
-                    sender.sendMessage(Lang.TITLE.toString() + Lang.HELP.toString());
-            }
-        } else {
-            sender.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.PLAYER_ONLY.toString());
-        }
+		return Lang.TITLE.toString() + Lang.EXISTING_VAULTS.toString().replaceAll("%p", target).replaceAll("%v", sb.toString().trim());
+	}
 
-        return true;
-    }
+	@Default
+	public void onOpenVault(final Player player, @Optional final int number) {
+		onOpenOtherVault(player, player, number);
+	}
 }
