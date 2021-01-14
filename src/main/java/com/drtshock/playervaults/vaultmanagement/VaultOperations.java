@@ -34,324 +34,326 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class VaultOperations {
 
-    private static final AtomicBoolean LOCKED = new AtomicBoolean(false);
+	private static final AtomicBoolean LOCKED = new AtomicBoolean(false);
 
-    /**
-     * Gets whether or not player vaults are locked
-     *
-     * @return true if locked, false otherwise
-     */
-    public static boolean isLocked() {
-        return LOCKED.get();
-    }
+	/**
+	 * Gets whether or not player vaults are locked
+	 *
+	 * @return true if locked, false otherwise
+	 */
+	public static boolean isLocked() {
+		return LOCKED.get();
+	}
 
-    /**
-     * Sets whether or not player vaults are locked. If set to true, this will kick anyone who is currently using their
-     * vaults out.
-     *
-     * @param locked true for locked, false otherwise
-     */
-    public static void setLocked(boolean locked) {
-        LOCKED.set(locked);
+	/**
+	 * Sets whether or not player vaults are locked. If set to true, this will kick anyone who is currently using their
+	 * vaults out.
+	 *
+	 * @param locked true for locked, false otherwise
+	 */
+	public static void setLocked(boolean locked) {
+		LOCKED.set(locked);
 
-        if (locked) {
-            for (Player player : PlayerVaults.getInstance().getServer().getOnlinePlayers()) {
-                if (player.getOpenInventory() != null) {
-                    InventoryView view = player.getOpenInventory();
-                    if (view.getTopInventory().getHolder() instanceof VaultHolder) {
-                        player.closeInventory();
-                        player.sendMessage(Lang.TITLE + Lang.LOCKED.toString());
-                    }
-                }
-            }
-        }
-    }
+		if (locked) {
+			for (Player player : PlayerVaults.getInstance().getServer().getOnlinePlayers()) {
+				if (player.getOpenInventory() != null) {
+					InventoryView view = player.getOpenInventory();
+					if (view.getTopInventory().getHolder() instanceof VaultHolder) {
+						player.closeInventory();
+						player.sendMessage(Lang.TITLE + Lang.LOCKED.toString());
+					}
+				}
+			}
+		}
+	}
 
-    /**
-     * Check whether or not the player has permission to open the requested vault.
-     *
-     * @param sender The person to check.
-     * @param number The vault number.
-     * @return Whether or not they have permission.
-     */
-    public static boolean checkPerms(CommandSender sender, int number) {
-        if (sender.hasPermission("playervaults.amount." + number)) {
-            return true;
-        }
-        for (int x = number; x <= PlayerVaults.getInstance().getMaxVaultAmountPermTest(); x++) {
-            if (sender.hasPermission("playervaults.amount." + x)) {
-                return true;
-            }
-        }
-        return false;
-    }
+	/**
+	 * Check whether or not the player has permission to open the requested vault.
+	 *
+	 * @param sender The person to check.
+	 * @param number The vault number.
+	 * @return Whether or not they have permission.
+	 */
+	public static boolean checkPerms(CommandSender sender, int number) {
+		if (sender.hasPermission("playervaults.amount." + number)) {
+			return true;
+		}
+		for (int x = number; x <= PlayerVaults.getInstance().getMaxVaultAmountPermTest(); x++) {
+			if (sender.hasPermission("playervaults.amount." + x)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
-    /**
-     * Get the max size vault a player is allowed to have.
-     *
-     * @param name that is having his permissions checked.
-     * @return max size as integer. If no max size is set then it will default to the configured default.
-     */
-    public static int getMaxVaultSize(String name) {
-        try {
-            UUID uuid = UUID.fromString(name);
-            return getMaxVaultSize(Bukkit.getOfflinePlayer(uuid));
-        } catch (Exception e) {
-            // Not a UUID
-        }
+	/**
+	 * Get the max size vault a player is allowed to have.
+	 *
+	 * @param name that is having his permissions checked.
+	 * @return max size as integer. If no max size is set then it will default to the configured default.
+	 */
+	public static int getMaxVaultSize(String name) {
+		try {
+			UUID uuid = UUID.fromString(name);
+			return getMaxVaultSize(Bukkit.getOfflinePlayer(uuid));
+		} catch (Exception e) {
+			// Not a UUID
+		}
 
-        return PlayerVaults.getInstance().getDefaultVaultSize();
-    }
+		return PlayerVaults.getInstance().getDefaultVaultSize();
+	}
 
-    /**
-     * Get the max size vault a player is allowed to have.
-     *
-     * @param player that is having his permissions checked.
-     * @return max size as integer. If no max size is set then it will default to the configured default.
-     */
-    public static int getMaxVaultSize(OfflinePlayer player) {
-        if (player == null || !player.isOnline()) {
-            return PlayerVaults.getInstance().getDefaultVaultSize();
-        }
-        for (int i = 6; i != 0; i--) {
-            if (player.getPlayer().hasPermission("playervaults.size." + i)) {
-                return i * 9;
-            }
-        }
-        return PlayerVaults.getInstance().getDefaultVaultSize();
-    }
+	/**
+	 * Get the max size vault a player is allowed to have.
+	 *
+	 * @param player that is having his permissions checked.
+	 * @return max size as integer. If no max size is set then it will default to the configured default.
+	 */
+	public static int getMaxVaultSize(OfflinePlayer player) {
+		if (player == null || !player.isOnline()) {
+			return PlayerVaults.getInstance().getDefaultVaultSize();
+		}
+		for (int i = 6; i != 0; i--) {
+			if (player.getPlayer().hasPermission("playervaults.size." + i)) {
+				return i * 9;
+			}
+		}
+		return PlayerVaults.getInstance().getDefaultVaultSize();
+	}
 
-    /**
-     * Open a player's own vault.
-     *
-     * @param player The player to open to.
-     * @param arg    The vault number to open.
-     * @return Whether or not the player was allowed to open it.
-     */
-    public static boolean openOwnVault(Player player, String arg) {
-        if (isLocked()) {
-            return false;
-        }
-        if (player.isSleeping() || player.isDead() || !player.isOnline()) {
-            return false;
-        }
-        int number;
-        try {
-            number = Integer.parseInt(arg);
-            if (number < 1) {
-                return false;
-            }
-        } catch (NumberFormatException nfe) {
-            player.sendMessage(Lang.TITLE.toString() + Lang.MUST_BE_NUMBER.toString());
-            return false;
-        }
+	/**
+	 * Open a player's own vault.
+	 *
+	 * @param player The player to open to.
+	 * @param arg    The vault number to open.
+	 * @return Whether or not the player was allowed to open it.
+	 */
+	public static boolean openOwnVault(Player player, String arg) {
+		if (isLocked()) {
+			return false;
+		}
+		if (player.isSleeping() || player.isDead() || !player.isOnline()) {
+			return false;
+		}
+		int number;
+		try {
+			number = Integer.parseInt(arg);
+			if (number < 1) {
+				return false;
+			}
+		} catch (NumberFormatException nfe) {
+			player.sendMessage(Lang.TITLE.toString() + Lang.MUST_BE_NUMBER.toString());
+			return false;
+		}
+		if (!checkPerms(player, number)) {
+			player.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS);
+			return false;
+		}
+		if (!EconomyOperations.payToOpen(player, number)) {
+			player.sendMessage(Lang.TITLE.toString() + Lang.INSUFFICIENT_FUNDS);
+			return false;
+		}
 
-        if (checkPerms(player, number)) {
-            if (EconomyOperations.payToOpen(player, number)) {
-                Inventory inv = VaultManager.getInstance().loadOwnVault(player, number, getMaxVaultSize(player));
-                if (inv == null) {
-                    PlayerVaults.debug(String.format("Failed to open null vault %d for %s. This is weird.", number, player.getName()));
-                    return false;
-                }
+		Inventory inv = VaultManager.getInstance().loadOwnVault(player, number, getMaxVaultSize(player));
+		if (inv == null) {
+			PlayerVaults.debug(String.format("Failed to open null vault %d for %s. This is weird.", number, player.getName()));
+			return false;
+		}
 
-                player.openInventory(inv);
+		player.openInventory(inv);
 
-                // Check if the inventory was actually opened
-                if (player.getOpenInventory().getTopInventory() instanceof CraftingInventory || player.getOpenInventory().getTopInventory() == null) {
-                    PlayerVaults.debug(String.format("Cancelled opening vault %s for %s from an outside source.", arg, player.getName()));
-                    return false; // inventory open event was cancelled.
-                }
+		// Check if the inventory was actually opened
+		if (player.getOpenInventory().getTopInventory() instanceof CraftingInventory || player.getOpenInventory().getTopInventory() == null) {
+			PlayerVaults.debug(String.format("Cancelled opening vault %s for %s from an outside source.", arg, player.getName()));
+			return false; // inventory open event was cancelled.
+		}
 
-                VaultViewInfo info = new VaultViewInfo(player.getUniqueId().toString(), number);
-                PlayerVaults.getInstance().getOpenInventories().put(info.toString(), inv);
+		VaultViewInfo info = new VaultViewInfo(player.getUniqueId().toString(), number);
+		PlayerVaults.getInstance().getOpenInventories().put(info.toString(), inv);
 
-                player.sendMessage(Lang.TITLE.toString() + Lang.OPEN_VAULT.toString().replace("%v", arg));
-                return true;
-            } else {
-                player.sendMessage(Lang.TITLE.toString() + Lang.INSUFFICIENT_FUNDS);
-                return false;
-            }
-        } else {
-            player.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS);
-        }
-        return false;
-    }
+		player.sendMessage(Lang.TITLE.toString() + Lang.OPEN_VAULT.toString().replace("%v", arg));
+		return true;
+	}
 
-    /**
-     * Open a player's own vault. If player is using a command, they'll need the required permission.
-     *
-     * @param player    The player to open to.
-     * @param arg       The vault number to open.
-     * @param isCommand - if player is opening via a command or not.
-     * @return Whether or not the player was allowed to open it.
-     */
-    public static boolean openOwnVault(Player player, String arg, boolean isCommand) {
-        if (isCommand && player.hasPermission("playervaults.commands.use")) {
-            return openOwnVault(player, arg);
-        }
-        player.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS.toString());
-        return false;
-    }
+	/**
+	 * Open a player's own vault. If player is using a command, they'll need the required permission.
+	 *
+	 * @param player    The player to open to.
+	 * @param arg       The vault number to open.
+	 * @param isCommand - if player is opening via a command or not.
+	 * @return Whether or not the player was allowed to open it.
+	 */
+	public static boolean openOwnVault(Player player, String arg, boolean isCommand) {
+		if (isCommand && player.hasPermission("playervaults.commands.use")) {
+			return openOwnVault(player, arg);
+		}
+		player.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS.toString());
+		return false;
+	}
 
 
-    public static boolean openOtherVault(Player player, String vaultOwner, int number) {
-        return openOtherVault(player,vaultOwner,String.valueOf(number));
-    }
-    /**
-     * Open another player's vault.
-     *
-     * @param player     The player to open to.
-     * @param vaultOwner The name of the vault owner.
-     * @param arg        The vault number to open.
-     * @return Whether or not the player was allowed to open it.
-     * TODO: Refactor
-     */
-    public static boolean openOtherVault(Player player, String vaultOwner, String arg) {
-        if (isLocked()) {
-            return false;
-        }
+	public static boolean openOtherVault(Player player, String vaultOwner, int number) {
+		return openOtherVault(player, vaultOwner, String.valueOf(number));
+	}
 
-        if (player.isSleeping() || player.isDead() || !player.isOnline()) {
-            return false;
-        }
+	/**
+	 * Open another player's vault.
+	 *
+	 * @param player     The player to open to.
+	 * @param vaultOwner The name of the vault owner.
+	 * @param arg        The vault number to open.
+	 * @return Whether or not the player was allowed to open it.
+	 */
+	public static boolean openOtherVault(Player player, String vaultOwner, String arg) {
+		if (isLocked()) {
+			return false;
+		}
 
-        long time = System.currentTimeMillis();
+		if (player.isSleeping() || player.isDead() || !player.isOnline()) {
+			return false;
+		}
 
-        int number = 0;
-        try {
-            number = Integer.parseInt(arg);
-            if (number < 1) {
-                player.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
-                return false;
-            }
-        } catch (NumberFormatException nfe) {
-            player.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
-        }
+		long time = System.currentTimeMillis();
 
-        Inventory inv = VaultManager.getInstance().loadOtherVault(vaultOwner, number, getMaxVaultSize(vaultOwner));
-        String name = vaultOwner;
-        try {
-            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(UUID.fromString(vaultOwner));
-            name = offlinePlayer.getName();
-        } catch (Exception e) {
-            // not a player
-        }
+		int number = 0;
+		try {
+			number = Integer.parseInt(arg);
+			if (number < 1) {
+				player.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
+				return false;
+			}
+		} catch (NumberFormatException nfe) {
+			player.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
+		}
 
-        if (inv == null) {
-            player.sendMessage(Lang.TITLE.toString() + Lang.VAULT_DOES_NOT_EXIST.toString());
-        } else {
-            player.openInventory(inv);
+		Inventory inv = VaultManager.getInstance().loadOtherVault(vaultOwner, number, getMaxVaultSize(vaultOwner));
+		String name = vaultOwner;
+		try {
+			OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(UUID.fromString(vaultOwner));
+			name = offlinePlayer.getName();
+		} catch (Exception e) {
+			// not a player
+		}
 
-            // Check if the inventory was actually opened
-            if (player.getOpenInventory().getTopInventory() instanceof CraftingInventory || player.getOpenInventory().getTopInventory() == null) {
-                PlayerVaults.debug(String.format("Cancelled opening vault %s for %s from an outside source.", arg, player.getName()));
-                return false; // inventory open event was cancelled.
-            }
-            player.sendMessage(Lang.TITLE.toString() + Lang.OPEN_OTHER_VAULT.toString().replace("%v", arg).replace("%p", name));
-            PlayerVaults.debug("opening other vault", time);
+		if (inv == null) {
+			player.sendMessage(Lang.TITLE.toString() + Lang.VAULT_DOES_NOT_EXIST.toString());
+		} else {
+			player.openInventory(inv);
 
-            // Need to set ViewInfo for a third party vault for the opening player.
-            VaultViewInfo info = new VaultViewInfo(vaultOwner, number);
-            PlayerVaults.getInstance().getInVault().put(player.getUniqueId().toString(), info);
-            PlayerVaults.getInstance().getOpenInventories().put(player.getUniqueId().toString(), inv);
-            return true;
-        }
+			// Check if the inventory was actually opened
+			if (player.getOpenInventory().getTopInventory() instanceof CraftingInventory || player.getOpenInventory().getTopInventory() == null) {
+				PlayerVaults.debug(String.format("Cancelled opening vault %s for %s from an outside source.", arg, player.getName()));
+				return false; // inventory open event was cancelled.
+			}
+			player.sendMessage(Lang.TITLE.toString() + Lang.OPEN_OTHER_VAULT.toString().replace("%v", arg).replace("%p", name));
+			PlayerVaults.debug("opening other vault", time);
 
-        PlayerVaults.debug("opening other vault returning false", time);
-        return false;
-    }
+			// Need to set ViewInfo for a third party vault for the opening player.
+			VaultViewInfo info = new VaultViewInfo(vaultOwner, number);
+			PlayerVaults.getInstance().getInVault().put(player.getUniqueId().toString(), info);
+			PlayerVaults.getInstance().getOpenInventories().put(player.getUniqueId().toString(), inv);
+			return true;
+		}
 
-    /**
-     * Delete a player's own vault.
-     *
-     * @param player The player to delete.
-     * @param arg    The vault number to delete.
-     */
-    public static void deleteOwnVault(Player player, String arg) {
-        if (isLocked()) {
-            return;
-        }
-        if (isNumber(arg)) {
-            int number = 0;
-            try {
-                number = Integer.parseInt(arg);
-                if (number == 0) {
-                    player.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
-                    return;
-                }
-            } catch (NumberFormatException nfe) {
-                player.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
-            }
+		PlayerVaults.debug("opening other vault returning false", time);
+		return false;
+	}
 
-            if (EconomyOperations.refundOnDelete(player, number)) {
-                VaultManager.getInstance().deleteVault(player, player.getUniqueId().toString(), number);
-                player.sendMessage(Lang.TITLE.toString() + Lang.DELETE_VAULT.toString().replaceAll("%v", arg));
-            }
+	/**
+	 * Delete a player's own vault.
+	 *
+	 * @param player The player to delete.
+	 * @param arg    The vault number to delete.
+	 */
+	public static void deleteOwnVault(Player player, String arg) {
+		if (isLocked()) {
+			return;
+		}
 
-        } else {
-            player.sendMessage(Lang.TITLE.toString() + Lang.MUST_BE_NUMBER);
-        }
-    }
+		if (!isNumber(arg))
+			player.sendMessage(Lang.TITLE.toString() + Lang.MUST_BE_NUMBER);
 
-    /**
-     * Delete a player's vault.
-     *
-     * @param sender The sender executing the deletion.
-     * @param holder The user to whom the deleted vault belongs.
-     * @param arg    The vault number to delete.
-     */
-    public static void deleteOtherVault(CommandSender sender, String holder, String arg) {
-        if (isLocked()) {
-            return;
-        }
-        if (sender.hasPermission("playervaults.delete")) {
-            if (isNumber(arg)) {
-                int number = 0;
-                try {
-                    number = Integer.parseInt(arg);
-                    if (number == 0) {
-                        sender.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
-                        return;
-                    }
-                } catch (NumberFormatException nfe) {
-                    sender.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
-                }
+		int number = 0;
+		try {
+			number = Integer.parseInt(arg);
+			if (number == 0) {
+				player.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
+				return;
+			}
+		} catch (NumberFormatException nfe) {
+			player.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
+		}
 
-                VaultManager.getInstance().deleteVault(sender, holder, number);
-                sender.sendMessage(Lang.TITLE.toString() + Lang.DELETE_OTHER_VAULT.toString().replaceAll("%v", arg).replaceAll("%p", holder));
-            } else {
-                sender.sendMessage(Lang.TITLE.toString() + Lang.MUST_BE_NUMBER);
-            }
-        } else {
-            sender.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS);
-        }
-    }
+		if (EconomyOperations.refundOnDelete(player, number)) {
+			VaultManager.getInstance().deleteVault(player, player.getUniqueId().toString(), number);
+			player.sendMessage(Lang.TITLE.toString() + Lang.DELETE_VAULT.toString().replaceAll("%v", arg));
+		}
 
-    /**
-     * Delete all of a player's vaults
-     *
-     * @param sender The sender executing the deletion.
-     * @param holder The user to whom the deleted vault belongs.
-     */
-    public static void deleteOtherAllVaults(CommandSender sender, String holder) {
-        if (isLocked() || holder == null) {
-            return;
-        }
 
-        if (sender.hasPermission("playervaults.delete.all")) {
-            VaultManager.getInstance().deleteAllVaults(holder);
-            PlayerVaults.getInstance().getLogger().info(String.format("%s deleted ALL vaults belonging to %s", sender.getName(), holder));
-        } else {
-            sender.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS);
-        }
-    }
+	}
 
-    private static boolean isNumber(String check) {
-        try {
-            Integer.parseInt(check);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
+	/**
+	 * Delete a player's vault.
+	 *
+	 * @param sender The sender executing the deletion.
+	 * @param holder The user to whom the deleted vault belongs.
+	 * @param arg    The vault number to delete.
+	 */
+	public static void deleteOtherVault(CommandSender sender, String holder, String arg) {
+		if (isLocked()) {
+			return;
+		}
+		if (!sender.hasPermission("playervaults.delete")) {
+			sender.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS);
+			return;
+		}
+
+		if (!isNumber(arg)) {
+			sender.sendMessage(Lang.TITLE.toString() + Lang.MUST_BE_NUMBER);
+		}
+
+		int number = 0;
+		try {
+			number = Integer.parseInt(arg);
+			if (number == 0) {
+				sender.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
+				return;
+			}
+		} catch (NumberFormatException nfe) {
+			sender.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.MUST_BE_NUMBER);
+		}
+
+		VaultManager.getInstance().deleteVault(sender, holder, number);
+		sender.sendMessage(Lang.TITLE.toString() + Lang.DELETE_OTHER_VAULT.toString().replaceAll("%v", arg).replaceAll("%p", holder));
+
+
+	}
+
+	/**
+	 * Delete all of a player's vaults
+	 *
+	 * @param sender The sender executing the deletion.
+	 * @param holder The user to whom the deleted vault belongs.
+	 */
+	public static void deleteOtherAllVaults(CommandSender sender, String holder) {
+		if (isLocked() || holder == null) {
+			return;
+		}
+
+		if (sender.hasPermission("playervaults.delete.all")) {
+			VaultManager.getInstance().deleteAllVaults(holder);
+			PlayerVaults.getInstance().getLogger().info(String.format("%s deleted ALL vaults belonging to %s", sender.getName(), holder));
+		} else {
+			sender.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS);
+		}
+	}
+
+	private static boolean isNumber(String check) {
+		try {
+			Integer.parseInt(check);
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
 }
