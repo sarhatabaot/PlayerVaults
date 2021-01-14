@@ -43,146 +43,155 @@ import java.util.stream.Collectors;
 
 public class Listeners implements Listener {
 
-    public final PlayerVaults plugin;
-    private final VaultManager vaultManager = VaultManager.getInstance();
+	public final PlayerVaults plugin;
+	private final VaultManager vaultManager = VaultManager.getInstance();
 
-    public Listeners(PlayerVaults playerVaults) {
-        this.plugin = playerVaults;
-    }
+	public Listeners(PlayerVaults playerVaults) {
+		this.plugin = playerVaults;
+	}
 
-    public void saveVault(Player player, Inventory inventory) {
-        if (plugin.getInVault().containsKey(player.getUniqueId().toString())) {
+	public void saveVault(Player player, Inventory inventory) {
+		if (plugin.getInVault().containsKey(player.getUniqueId().toString())) {
 
-            Inventory inv = Bukkit.createInventory(null, 6 * 9);
-            inv.setContents(inventory.getContents().clone());
+			Inventory inv = Bukkit.createInventory(null, 6 * 9);
+			inv.setContents(inventory.getContents().clone());
 
-            PlayerVaults.debug(inventory.getType() + " " + inventory.getClass().getSimpleName());
-            if (inventory.getViewers().size() <= 1) {
-                PlayerVaults.debug("Saving!");
-                VaultViewInfo info = plugin.getInVault().get(player.getUniqueId().toString());
-                vaultManager.saveVault(inv, info.getVaultName(), info.getNumber());
-                plugin.getOpenInventories().remove(info.toString());
-            } else {
-                PlayerVaults.debug("Other viewers found, not saving! " + inventory.getViewers().stream().map(HumanEntity::getName).collect(Collectors.joining(" ")));
-            }
+			PlayerVaults.debug(inventory.getType() + " " + inventory.getClass().getSimpleName());
+			if (inventory.getViewers().size() <= 1) {
+				PlayerVaults.debug("Saving!");
+				VaultViewInfo info = plugin.getInVault().get(player.getUniqueId().toString());
+				vaultManager.saveVault(inv, info.getVaultName(), info.getNumber());
+				plugin.getOpenInventories().remove(info.toString());
+			} else {
+				PlayerVaults.debug("Other viewers found, not saving! " + inventory.getViewers().stream().map(HumanEntity::getName).collect(Collectors.joining(" ")));
+			}
 
-            plugin.getInVault().remove(player.getUniqueId().toString());
-        }
-    }
+			plugin.getInVault().remove(player.getUniqueId().toString());
+		}
+	}
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onTeleport(PlayerTeleportEvent event) {
-        if (event.getCause() == PlayerTeleportEvent.TeleportCause.UNKNOWN) {
-            return;
-        }
-        Player p = event.getPlayer();
-        // The player will either quit, die, or close the inventory at some point
-        if (plugin.getInVault().containsKey(p.getUniqueId().toString())) {
-            return;
-        }
-        saveVault(p, p.getOpenInventory().getTopInventory());
-    }
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+	public void onTeleport(PlayerTeleportEvent event) {
+		if (event.getCause() == PlayerTeleportEvent.TeleportCause.UNKNOWN) {
+			return;
+		}
+		Player p = event.getPlayer();
+		// The player will either quit, die, or close the inventory at some point
+		if (plugin.getInVault().containsKey(p.getUniqueId().toString())) {
+			return;
+		}
+		saveVault(p, p.getOpenInventory().getTopInventory());
+	}
 
-    @EventHandler(priority = EventPriority.HIGH)
-    public void onQuit(PlayerQuitEvent event) {
-        saveVault(event.getPlayer(), event.getPlayer().getOpenInventory().getTopInventory());
-    }
+	@EventHandler(priority = EventPriority.HIGH)
+	public void onQuit(PlayerQuitEvent event) {
+		saveVault(event.getPlayer(), event.getPlayer().getOpenInventory().getTopInventory());
+	}
 
-    @EventHandler(priority = EventPriority.HIGH)
-    public void onDeath(PlayerDeathEvent event) {
-        saveVault(event.getEntity(), event.getEntity().getOpenInventory().getTopInventory());
-    }
+	@EventHandler(priority = EventPriority.HIGH)
+	public void onDeath(PlayerDeathEvent event) {
+		saveVault(event.getEntity(), event.getEntity().getOpenInventory().getTopInventory());
+	}
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onClose(InventoryCloseEvent event) {
-        saveVault((Player) event.getPlayer(), event.getInventory());
-    }
+	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+	public void onClose(InventoryCloseEvent event) {
+		saveVault((Player) event.getPlayer(), event.getInventory());
+	}
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onInteractEntity(PlayerInteractEntityEvent event) {
-        Player player = event.getPlayer();
-        EntityType type = event.getRightClicked().getType();
-        if ((type == EntityType.VILLAGER || type == EntityType.MINECART) && PlayerVaults.getInstance().getInVault().containsKey(player.getUniqueId().toString())) {
-            event.setCancelled(true);
-        }
-    }
+	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+	public void onInteractEntity(PlayerInteractEntityEvent event) {
+		Player player = event.getPlayer();
+		EntityType type = event.getRightClicked().getType();
+		if ((type == EntityType.VILLAGER || type == EntityType.MINECART) && PlayerVaults.getInstance().getInVault().containsKey(player.getUniqueId().toString())) {
+			event.setCancelled(true);
+		}
+	}
 
-    @EventHandler(ignoreCancelled = true)
-    public void onClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player)) {
-            return;
-        }
+	@EventHandler(ignoreCancelled = true)
+	public void onClick(InventoryClickEvent event) {
+		if (!(event.getWhoClicked() instanceof Player)) {
+			return;
+		}
 
-        Player player = (Player) event.getWhoClicked();
+		Player player = (Player) event.getWhoClicked();
 
-        Inventory clickedInventory = event.getClickedInventory();
-        if (clickedInventory != null) {
-            VaultViewInfo info = PlayerVaults.getInstance().getInVault().get(player.getUniqueId().toString());
-            if (info != null) {
-                int num = info.getNumber();
-                String inventoryTitle = event.getView().getTitle();
-                String title = Lang.VAULT_TITLE.toString().replace("%number", String.valueOf(num)).replace("%p", info.getVaultName());
-                if (inventoryTitle.equalsIgnoreCase(title)) {
-                    ItemStack[] items = new ItemStack[2];
-                    items[0] = event.getCurrentItem();
-                    if (event.getHotbarButton() > -1 && event.getWhoClicked().getInventory().getItem(event.getHotbarButton()) != null) {
-                        items[1] = event.getWhoClicked().getInventory().getItem(event.getHotbarButton());
-                    }
+		Inventory clickedInventory = event.getClickedInventory();
+		if (clickedInventory == null) {
+			return;
+		}
 
-                    for (ItemStack item : items) {
-                        if (item == null) {
-                            continue;
-                        }
-                        try {
-                            item.toString();
-                        } catch (Exception e) {
-                            player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_BAD_ITEM);
-                            event.setCancelled(true);
-                            return;
-                        }
-                        if (!player.hasPermission("playervaults.bypassblockeditems") && PlayerVaults.getInstance().isBlockedMaterial(item.getType())) {
-                            event.setCancelled(true);
-                            player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_ITEM.toString().replace("%m", item.getType().name()));
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-    }
+		VaultViewInfo info = PlayerVaults.getInstance().getInVault().get(player.getUniqueId().toString());
+		if (info == null) {
+			return;
+		}
 
-    @EventHandler(ignoreCancelled = true)
-    public void onDrag(InventoryDragEvent event) {
-        if (!(event.getWhoClicked() instanceof Player)) {
-            return;
-        }
+		int num = info.getNumber();
+		String inventoryTitle = event.getView().getTitle();
+		String title = Lang.VAULT_TITLE.toString().replace("%number", String.valueOf(num)).replace("%p", info.getVaultName());
+		if (!inventoryTitle.equalsIgnoreCase(title)) {
+			return;
+		}
 
-        Player player = (Player) event.getWhoClicked();
 
-        Inventory clickedInventory = event.getInventory();
-        if (clickedInventory != null) {
-            VaultViewInfo info = PlayerVaults.getInstance().getInVault().get(player.getUniqueId().toString());
-            if (info != null) {
-                int num = info.getNumber();
-                String inventoryTitle = event.getView().getTitle();
-                String title = Lang.VAULT_TITLE.toString().replace("%number", String.valueOf(num)).replace("%p", info.getVaultName());
-                if ((inventoryTitle != null && inventoryTitle.equalsIgnoreCase(title)) && event.getNewItems() != null) {
-                    for (ItemStack item : event.getNewItems().values()) {
-                        try {
-                            item.toString();
-                        } catch (Exception e) {
-                            player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_BAD_ITEM);
-                            event.setCancelled(true);
-                            continue;
-                        }
-                        if (!player.hasPermission("playervaults.bypassblockeditems") && PlayerVaults.getInstance().isBlockedMaterial(item.getType())) {
-                            event.setCancelled(true);
-                            player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_ITEM.toString().replace("%m", item.getType().name()));
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-    }
+		ItemStack[] items = new ItemStack[2];
+		items[0] = event.getCurrentItem();
+		if (event.getHotbarButton() > -1 && event.getWhoClicked().getInventory().getItem(event.getHotbarButton()) != null) {
+			items[1] = event.getWhoClicked().getInventory().getItem(event.getHotbarButton());
+		}
+
+		for (ItemStack item : items) {
+			if (item == null) {
+				continue;
+			}
+			try {
+				item.toString();
+			} catch (Exception e) {
+				player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_BAD_ITEM);
+				event.setCancelled(true);
+				return;
+			}
+			if (!player.hasPermission("playervaults.bypassblockeditems") && PlayerVaults.getInstance().isBlockedMaterial(item.getType())) {
+				event.setCancelled(true);
+				player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_ITEM.toString().replace("%m", item.getType().name()));
+				return;
+			}
+		}
+
+
+	}
+
+	@EventHandler(ignoreCancelled = true)
+	public void onDrag(InventoryDragEvent event) {
+		if (!(event.getWhoClicked() instanceof Player)) {
+			return;
+		}
+
+		Player player = (Player) event.getWhoClicked();
+
+		Inventory clickedInventory = event.getInventory();
+		if (clickedInventory != null) {
+			VaultViewInfo info = PlayerVaults.getInstance().getInVault().get(player.getUniqueId().toString());
+			if (info != null) {
+				int num = info.getNumber();
+				String inventoryTitle = event.getView().getTitle();
+				String title = Lang.VAULT_TITLE.toString().replace("%number", String.valueOf(num)).replace("%p", info.getVaultName());
+				if ((inventoryTitle != null && inventoryTitle.equalsIgnoreCase(title)) && event.getNewItems() != null) {
+					for (ItemStack item : event.getNewItems().values()) {
+						try {
+							item.toString();
+						} catch (Exception e) {
+							player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_BAD_ITEM);
+							event.setCancelled(true);
+							continue;
+						}
+						if (!player.hasPermission("playervaults.bypassblockeditems") && PlayerVaults.getInstance().isBlockedMaterial(item.getType())) {
+							event.setCancelled(true);
+							player.sendMessage(Lang.TITLE.toString() + Lang.BLOCKED_ITEM.toString().replace("%m", item.getType().name()));
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
 }
