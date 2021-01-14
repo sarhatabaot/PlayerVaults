@@ -50,6 +50,7 @@ import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.defaults.ReloadCommand;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -75,7 +76,6 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 public class PlayerVaults extends JavaPlugin {
-	public static boolean DEBUG;
 	private static PlayerVaults instance;
 	private final HashMap<String, SignSetInfo> setSign = new HashMap<>();
 	// Player name - VaultViewInfo
@@ -105,84 +105,49 @@ public class PlayerVaults extends JavaPlugin {
 	}
 
 	public static void debug(String s, long start) {
-		if (DEBUG) {
-			instance.getLogger().log(Level.INFO, "{0} took {1}ms", new Object[]{s, (System.currentTimeMillis() - start)});
-		}
+		debug("{0} took {1}ms", new Object[]{s, (System.currentTimeMillis() - start)});
 	}
 
+
+	public static void debug(final String msg, final Object[] params) {
+		if (getInstance().getConf().isDebug()) {
+				instance.getLogger().log(Level.INFO,msg,params);
+		}
+	}
 
 	public static void debug(String s) {
-		if (DEBUG) {
-			instance.getLogger().log(Level.INFO, s);
-		}
+		debug(s,null);
 	}
 
-	@Override
-	public void onEnable() {
-		instance = this;
-		long start = System.currentTimeMillis();
+	private void loadVaultData() {
 		long time = System.currentTimeMillis();
-		loadConfig();
-		DEBUG = getConf().isDebug();
-		debug("config", time);
-		time = System.currentTimeMillis();
 		uuidData = new File(this.getDataFolder(), "uuidvaults");
 		vaultData = new File(this.getDataFolder(), "base64vaults");
 		debug("vaultdata", time);
-		time = System.currentTimeMillis();
-		getServer().getScheduler().runTask(this, new UUIDConversion()); // Convert to UUIDs first. Class checks if necessary.
-		debug("uuid conversion", time);
-		time = System.currentTimeMillis();
-		new VaultManager();
-		getServer().getScheduler().runTask(this, new Base64Conversion());
-		debug("base64 conversion", time);
-		time = System.currentTimeMillis();
-		loadLang();
-		debug("lang", time);
-		time = System.currentTimeMillis();
-		new UUIDVaultManager();
-		debug("uuidvaultmanager", time);
-		time = System.currentTimeMillis();
+	}
+
+	private void registerListeners() {
+		long time = System.currentTimeMillis();
 		getServer().getPluginManager().registerEvents(new Listeners(this), this);
 		getServer().getPluginManager().registerEvents(new VaultPreloadListener(), this);
 		getServer().getPluginManager().registerEvents(new SignListener(this), this);
 		debug("registering listeners", time);
-		time = System.currentTimeMillis();
-		this.backupsEnabled = this.getConf().getStorage().getFlatFile().isBackups();
-		this.maxVaultAmountPermTest = this.getConf().getMaxVaultAmountPermTest();
-		loadSigns();
-		debug("loaded signs", time);
-		time = System.currentTimeMillis();
+	}
+
+
+	private void registerCommands() {
+		long time = System.currentTimeMillis();
 		PaperCommandManager commandManager = new PaperCommandManager(this);
 		commandManager.registerCommand(new ConvertCommand());
 		commandManager.registerCommand(new VaultCommand());
 		commandManager.registerCommand(new ReloadCommand());
 		commandManager.registerCommand(new DeleteCommand());
 		commandManager.registerCommand(new SignCommand());
-		//getCommand("pv").setExecutor(new VaultCommand());
-		//getCommand("pvdel").setExecutor(new DeleteCommand());
-		//getCommand("pvconvert").setExecutor(new ConvertCommand());
-		//getCommand("pvsign").setExecutor(new SignCommand());
 		debug("registered commands", time);
-		time = System.currentTimeMillis();
-		useVault = setupEconomy();
-		debug("setup economy", time);
+	}
 
-		if (getConf().getPurge().isEnabled()) {
-			getServer().getScheduler().runTaskAsynchronously(this, new Cleanup(getConf().getPurge().getDaysSinceLastEdit()));
-		}
 
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				if (saveQueued) {
-					saveSignsFile();
-				}
-			}
-		}.runTaskTimer(this, 20, 20);
-
-		loadTask();
-
+	private void setupMetrics() {
 		this.metrics = new Metrics(this, 6905);
 		Plugin vault = getServer().getPluginManager().getPlugin("Vault");
 		this.metricsDrillPie("vault", () -> this.metricsPluginInfo(vault));
@@ -252,7 +217,50 @@ public class PlayerVaults extends JavaPlugin {
 			map.put(getConf().getItemBlocking().isEnabled() ? "enabled" : "disabled", entry);
 			return map;
 		});
+	}
 
+	@Override
+	public void onEnable() {
+		instance = this;
+		long start = System.currentTimeMillis();
+		loadConfig();
+		loadVaultData();
+		new UUIDConversion().runTask(this);
+		new VaultManager();
+		new Base64Conversion().runTask(this);
+		loadLang();
+		new UUIDVaultManager();
+		registerListeners();
+		this.backupsEnabled = this.getConf().getStorage().getFlatFile().isBackups();
+		this.maxVaultAmountPermTest = this.getConf().getMaxVaultAmountPermTest();
+		loadSigns();
+		registerCommands();
+		long time = System.currentTimeMillis();
+		useVault = setupEconomy();
+		debug("setup economy", time);
+
+		if (getConf().getPurge().isEnabled()) {
+			getServer().getScheduler().runTaskAsynchronously(this, new Cleanup(getConf().getPurge().getDaysSinceLastEdit()));
+		}
+
+		new BukkitRunnable() {
+			@Override
+			public void run() {
+				if (saveQueued) {
+					saveSignsFile();
+				}
+			}
+		}.runTaskTimer(this, 20, 20);
+
+		loadTask();
+		setupMetrics();
+
+		patchSpigotItemStorageBug();
+
+		this.getLogger().info("Loaded! Took " + (System.currentTimeMillis() - start) + "ms");
+	}
+
+	private void patchSpigotItemStorageBug() {
 		try {
 			Class<?> clazz = Class.forName(this.getServer().getClass().getPackage().getName() + ".util.CraftNBTTagConfigSerializer");
 			Field field = clazz.getDeclaredField("INTEGER");
@@ -268,10 +276,7 @@ public class PlayerVaults extends JavaPlugin {
 		} catch (Exception ignored) {
 			// Don't worry about it.
 		}
-
-		this.getLogger().info("Loaded! Took " + (System.currentTimeMillis() - start) + "ms");
 	}
-
 
 	private void metricsLine(String name, Callable<Integer> callable) {
 		this.metrics.addCustomChart(new Metrics.SingleLineChart(name, callable));
@@ -359,6 +364,7 @@ public class PlayerVaults extends JavaPlugin {
 	}
 
 	private void loadConfig() {
+		long time = System.currentTimeMillis();
 		File configYaml = new File(this.getDataFolder(), "config.yml");
 		if (!(new File(this.getDataFolder(), "config.conf").exists()) && configYaml.exists()) {
 			this.config.setFromConfig(this.getLogger(), this.getConfig());
@@ -387,6 +393,8 @@ public class PlayerVaults extends JavaPlugin {
 				}
 			}
 		}
+
+		debug("config", time);
 	}
 
 	public Config getConf() {
@@ -394,6 +402,7 @@ public class PlayerVaults extends JavaPlugin {
 	}
 
 	private void loadSigns() {
+		long time = System.currentTimeMillis();
 		File signs = new File(getDataFolder(), "signs.yml");
 		if (!signs.exists()) {
 			try {
@@ -406,6 +415,7 @@ public class PlayerVaults extends JavaPlugin {
 		}
 		this.signsFile = signs;
 		this.signs = YamlConfiguration.loadConfiguration(signs);
+		debug("loaded signs", time);
 	}
 
 	private void reloadSigns() {
@@ -454,6 +464,7 @@ public class PlayerVaults extends JavaPlugin {
 	}
 
 	public void loadLang() {
+		long time = System.currentTimeMillis();
 		File folder = new File(getDataFolder(), "lang");
 		if (!folder.exists()) {
 			folder.mkdir();
@@ -494,17 +505,18 @@ public class PlayerVaults extends JavaPlugin {
 
 		Lang.setFile(YamlConfiguration.loadConfiguration(definedFile));
 		getLogger().info("Loaded lang for " + definedLanguage);
+		debug("lang", time);
 	}
 
-	public HashMap<String, SignSetInfo> getSetSign() {
+	public Map<String, SignSetInfo> getSetSign() {
 		return this.setSign;
 	}
 
-	public HashMap<String, VaultViewInfo> getInVault() {
+	public Map<String, VaultViewInfo> getInVault() {
 		return this.inVault;
 	}
 
-	public HashMap<String, Inventory> getOpenInventories() {
+	public Map<String, Inventory> getOpenInventories() {
 		return this.openInventories;
 	}
 

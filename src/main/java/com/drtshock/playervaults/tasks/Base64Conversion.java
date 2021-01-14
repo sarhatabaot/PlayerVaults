@@ -26,15 +26,18 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+import static com.drtshock.playervaults.PlayerVaults.debug;
+
 /**
  * Class to convert vaults by Bukkit serialization to Base64.
  */
-public final class Base64Conversion implements Runnable {
+public final class Base64Conversion extends BukkitRunnable {
 
     @Override
     public void run() {
@@ -52,7 +55,7 @@ public final class Base64Conversion implements Runnable {
             logger.info("No uuidvaults found to convert to base64.");
             return;
         }
-
+        long time = System.currentTimeMillis();
         newDir.mkdirs();
 
         UUIDVaultManager oldManager = UUIDVaultManager.getInstance();
@@ -92,7 +95,7 @@ public final class Base64Conversion implements Runnable {
                     continue;
                 }
 
-                int vaultNumber = Integer.valueOf(key.replace("vault", ""));
+                int vaultNumber = Integer.parseInt(key.replace("vault", ""));
 
                 try {
                     Inventory inventory = oldManager.getVault(holderUUID, vaultNumber);
@@ -108,5 +111,6 @@ public final class Base64Conversion implements Runnable {
         }
 
         logger.info(String.format("Converted %d vaults for %d players to base64. %d failed to convert", vaults, players, failed));
+        debug("base64 conversion", time);
     }
 }

@@ -38,6 +38,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
+import static com.drtshock.playervaults.PlayerVaults.debug;
+
 /**
  * Class to handle vault operations with new UUIDs.
  */
@@ -50,6 +52,7 @@ public class UUIDVaultManager {
 
     public UUIDVaultManager() {
         instance = this;
+        debug("uuidvaultmanager", System.currentTimeMillis());
     }
 
     /**
