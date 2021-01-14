@@ -193,6 +193,10 @@ public class VaultOperations {
         return false;
     }
 
+
+    public static boolean openOtherVault(Player player, String vaultOwner, int number) {
+        return openOtherVault(player,vaultOwner,String.valueOf(number));
+    }
     /**
      * Open another player's vault.
      *
@@ -200,6 +204,7 @@ public class VaultOperations {
      * @param vaultOwner The name of the vault owner.
      * @param arg        The vault number to open.
      * @return Whether or not the player was allowed to open it.
+     * TODO: Refactor
      */
     public static boolean openOtherVault(Player player, String vaultOwner, String arg) {
         if (isLocked()) {

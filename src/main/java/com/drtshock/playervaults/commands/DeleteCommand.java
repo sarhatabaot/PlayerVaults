@@ -18,6 +18,10 @@
 
 package com.drtshock.playervaults.commands;
 
+import co.aikar.commands.BaseCommand;
+import co.aikar.commands.annotation.CommandAlias;
+import co.aikar.commands.annotation.CommandPermission;
+import co.aikar.commands.annotation.Default;
 import com.drtshock.playervaults.PlayerVaults;
 import com.drtshock.playervaults.translations.Lang;
 import com.drtshock.playervaults.vaultmanagement.VaultManager;
@@ -30,47 +34,39 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-public class DeleteCommand implements CommandExecutor {
+public class DeleteCommand extends BaseCommand {
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    @CommandAlias("pvdelother")
+    @CommandPermission("playervaults.delete.other")
+    public void onDeleteOtherVault(final CommandSender sender, final OfflinePlayer target, final int number) {
         if (VaultOperations.isLocked()) {
             sender.sendMessage(Lang.TITLE + Lang.LOCKED.toString());
-            return true;
+            return;
         }
-        switch (args.length) {
-            case 1:
-                if (sender instanceof Player) {
-                    VaultOperations.deleteOwnVault((Player) sender, args[0]);
-                } else {
-                    sender.sendMessage(Lang.TITLE.toString() + ChatColor.RED + Lang.PLAYER_ONLY);
-                }
-                break;
-            case 2:
-                OfflinePlayer searchPlayer = Bukkit.getOfflinePlayer(args[0]);
-                String target = args[0];
-                if (searchPlayer != null && searchPlayer.hasPlayedBefore()) {
-                    target = searchPlayer.getUniqueId().toString();
-                }
+        VaultOperations.deleteOtherVault(sender, target.getName(), String.valueOf(number));
+    }
 
-                // TODO: fix the stupid message inconsistencies where sometimes this class sends, sometimes vaultops does.
-                if (args[1].equalsIgnoreCase("all")) {
-                    if (sender.hasPermission("playervaults.delete.all")) {
-                        VaultManager.getInstance().deleteAllVaults(target);
-                        sender.sendMessage(Lang.TITLE.toString() + Lang.DELETE_OTHER_VAULT_ALL.toString().replaceAll("%p", target));
-                        PlayerVaults.getInstance().getLogger().info(String.format("%s deleted ALL vaults belonging to %s", sender.getName(), target));
-                    } else {
-                        sender.sendMessage(Lang.TITLE.toString() + Lang.NO_PERMS);
-                    }
-
-                }
-                VaultOperations.deleteOtherVault(sender, target, args[1]);
-                break;
-            default:
-                sender.sendMessage(Lang.TITLE + "/" + label + " <number>");
-                sender.sendMessage(Lang.TITLE + "/" + label + " <player> <number>");
-                sender.sendMessage(Lang.TITLE + "/" + label + " <player> all");
+    @CommandAlias("pvdelall")
+    @CommandPermission("playervaults.delete.all")
+    public void onDeleteAllOtherVaults(final CommandSender sender, final OfflinePlayer target) {
+        if (VaultOperations.isLocked()) {
+            sender.sendMessage(Lang.TITLE + Lang.LOCKED.toString());
+            return;
         }
-        return true;
+
+        VaultManager.getInstance().deleteAllVaults(target.getName());
+        sender.sendMessage(Lang.TITLE.toString() + Lang.DELETE_OTHER_VAULT_ALL.toString().replaceAll("%p", target.getName()));
+        PlayerVaults.getInstance().getLogger().info(String.format("%s deleted ALL vaults belonging to %s", sender.getName(), target));
+    }
+
+
+    @Default
+    @CommandAlias("pvdel")
+    public void onDeleteVault(final Player player, final int number) {
+        if (VaultOperations.isLocked()) {
+            player.sendMessage(Lang.TITLE + Lang.LOCKED.toString());
+            return;
+        }
+        VaultOperations.deleteOwnVault(player, String.valueOf(number));
     }
 }
